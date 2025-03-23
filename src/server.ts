@@ -2,7 +2,6 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import IndexController from './controllers';
 
 const app = express();
 const server = http.createServer(app);
@@ -13,8 +12,6 @@ const io = new Server(server, {
     credentials: true,
   }
 });
-
-const indexController = new IndexController();
 const rooms: { [key: string]: any } = {};
 
 // Test de la route GET '/'
@@ -23,13 +20,9 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('Nouvelle connexion');
-
   // Rejoindre une room
   socket.on('join', ({ username, room }) => {
     socket.join(room);
-    console.log(`Utilisateur ${username} rejoint la room: ${room}`);
-
     // Envoyer l'état actuel des choix dans cette room
     if (!rooms[room]) rooms[room] = {}; 
   });

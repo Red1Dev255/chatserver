@@ -23,8 +23,15 @@ io.on('connection', (socket) => {
   // Rejoindre une room
   socket.on('join', ({ username, room }) => {
     socket.join(room);
+
+    console.log(username + ' a rejoint la room ' + room);
     // Envoyer l'état actuel des choix dans cette room
     if (!rooms[room]) rooms[room] = {}; 
+
+    socket.emit('joinSuccess', {
+      success: true
+    });
+    
   });
 
   // Quand un utilisateur envoie un message
@@ -40,6 +47,7 @@ io.on('connection', (socket) => {
     io.to(room).emit('newMessage', { username, message });
   });
 });
+
 
 // Démarrer le serveur
 server.listen(3000, () => {

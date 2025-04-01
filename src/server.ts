@@ -1,10 +1,10 @@
-// filepath: /game-server/game-server/src/server.ts
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -12,7 +12,19 @@ const io = new Server(server, {
     credentials: true,
   }
 });
-const rooms: { [key: string]: any } = {};
+
+interface MessageUser {
+  username: string;
+  encryptedMessage: string;
+}
+
+interface UserKey{
+  username: string;
+  publicKey: string;
+}
+
+const roomsMessage: { [key: string]: MessageUser[] } = {};
+const roomsKeys: { [key: string]: UserKey[] } = {};
 
 // Test de la route GET '/'
 app.get('/', (req, res) => {
@@ -20,36 +32,56 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  // Rejoindre une room
-  socket.on('join', ({ username, room }) => {
-    socket.join(room);
+  socket.on('join', ({ username, room, publicKey }) => {
+        socket.join(room);
+        
+        if (!roomsKeys[room]) {
+          roomsKeys[room] = [];
+        }
+      
+        let userKey: UserKey = {
+          username: username,
+          publicKey: publicKey
+        };
 
-    console.log(username + ' a rejoint la room ' + room);
-    // Envoyer l'état actuel des choix dans cette room
-    if (!rooms[room]) rooms[room] = {}; 
+         // verify if the user is already in the room
+        const userExists = roomsKeys[room].some((user: UserKey) => user.username === username);
 
-    socket.emit('joinSuccess', {
-      success: true
-    });
-    
+          // add the user to the room if it doesn't exist
+        if (!userExists) {
+          roomsKeys[room].push(userKey);
+          socket.emit('joinSuccess', {
+            success: true,
+            detailsMessage:'Connexion réussie'
+          });
+
+          io.to(room).emit('newListKey', { usersKeys: roomsKeys[room] });
+
+        } else {
+          // send a message to the client that the username is already taken
+          socket.emit('joinSuccess', {
+            success: false,
+            detailsMessage:'Le nom d\'utilisateur est déjà pris dans cette salle.'
+          });
+        }
   });
 
-  // Quand un utilisateur envoie un message
-  socket.on('message', ({ room, username, message }) => {
+  socket.on('leave', ({ username, room }) => {
+    // delete the user from the room
+      roomsKeys[room] = roomsKeys[room]?.filter((user: UserKey) => user.username !== username);
+      if (roomsKeys[room].length === 0) {
+        delete roomsKeys[room];
+      }
+  });
 
-    if (!Array.isArray(rooms[room]) || !rooms[room]) {
-      rooms[room] = []; // Si ce n'est pas un tableau, initialisez-le en tant que tableau vide
-    }
-    
-    rooms[room].push({ username, message }); // Enregistrer le message de l'utilisateur
-
-    // Émettre le message à tous les utilisateurs de la room
-    io.to(room).emit('newMessage', { username, message });
+  //receive message from client and send it to the room
+  socket.on('newMessageSend', ({ room, usernameSender, encryptedMessagesRoom }) => {
+    io.to(room).emit('newMessage', { usernameSender, encryptedMessagesRoom });
   });
 });
 
 
-// Démarrer le serveur
+// start the server
 server.listen(3000, () => {
   console.log('Serveur en écoute sur le port 3000');
 });

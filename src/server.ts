@@ -23,8 +23,8 @@ interface UserKey{
   publicKey: string;
 }
 
-const roomsMessage: { [key: string]: MessageUser[] } = {};
-const roomsKeys: { [key: string]: UserKey[] } = {};
+const roomsMessage: { [roomId: string]: MessageUser[] } = {};
+const roomsKeys: { [roomId: string]: UserKey[] } = {};
 
 // Test de la route GET '/'
 app.get('/', (req, res) => {
@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   socket.on('join', ({ username, room, publicKey }) => {
-        socket.join(room);
+        
         
         if (!roomsKeys[room]) {
           roomsKeys[room] = [];
@@ -49,6 +49,7 @@ io.on('connection', (socket) => {
 
           // add the user to the room if it doesn't exist
         if (!userExists) {
+          socket.join(room);
           roomsKeys[room].push(userKey);
           socket.emit('joinSuccess', {
             success: true,
@@ -72,7 +73,31 @@ io.on('connection', (socket) => {
       if (roomsKeys[room].length === 0) {
         delete roomsKeys[room];
       }
+      console.log(`User ${username} left room ${room}`);
   });
+
+
+  //Update connected users in the room and indicate that the server is ready to receive messages
+  setInterval(() => {
+    const roomsPresent = UpdateRoomsPresent();
+    for (const room of Object.keys(roomsKeys)) {
+      io.to(room).emit('serverIsOk', true);
+    }
+}, 5000); 
+
+
+
+const UpdateRoomsPresent = () => {
+  let savedRooms = Object.keys(roomsKeys); // Get the keys of the rooms that are present in roomsKeys
+  let connectedNetworkRooms = [...io.sockets.adapter.rooms.entries()].map(([k]) => k); // Get the keys of all connected rooms
+  let roomNotConnected = savedRooms.filter(roomKey => !connectedNetworkRooms.includes(roomKey)); // Filter the rooms that are not connected
+
+  for(let roomId of Object.keys(roomsKeys)){
+    if (roomNotConnected.includes(roomId)) {
+      delete roomsKeys[roomId];
+    }      
+  }
+}
 
   //receive message from client and send it to the room
   socket.on('newMessageSend', ({ room, usernameSender, encryptedMessagesRoom }) => {

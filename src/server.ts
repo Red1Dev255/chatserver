@@ -29,7 +29,13 @@ interface UserKey{
 let  roomsMessagesMap = new Map<string, Array<MessageUser>>(); 
 let  roomsKeysMap = new Map<string, Array<UserKey>>();
 
-app.use(cors());
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // Test de la route GET '/'

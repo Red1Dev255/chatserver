@@ -14,6 +14,13 @@ const io = new Server(server, {
   }
 });
 
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json());
 
 interface MessageUser {
   username: string;
@@ -28,15 +35,6 @@ interface UserKey{
 
 let  roomsMessagesMap = new Map<string, Array<MessageUser>>(); 
 let  roomsKeysMap = new Map<string, Array<UserKey>>();
-
-
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-app.use(express.json());
 
 // Test de la route GET '/'
 app.get('/', (req, res) => {
@@ -75,68 +73,27 @@ app.post('/login', (req, res) => {
 
 })
 
-
+//Disconnect with button 
 app.post('/disconnect', (req, res) => {
   
   const { username, room} = req.body;
-
   if(username && room){
-    if(roomsKeysMap.has(room)){
-      // remove the user from the room
-      const usersKeys = roomsKeysMap.get(room);
-
-      if(usersKeys){
-        const userIndex = usersKeys.findIndex((user: UserKey) => user.username === username);
-        if(userIndex !== -1){
-          usersKeys.splice(userIndex, 1);
-          res.status(200).send('User removed from the room');
-        } else {
-          console.log(`User ${username} not found in room ${room}`);
-          res.status(400).send('User not found in the room');
-        }
-      }
-    } else {
-      res.status(400).send('Room not found');
-    }
+    disconnectFunction(username, room);
+    res.status(200).send('User disconnected from the room');
   } else {
     res.status(500).send('Error occurred while disconnecting from the room'); 
   }
 })
 
 
+
 io.on('connection', (socket) => {
 
-
-  // socket.on('leave', ({ username, room }) => {
-  //     console.log(`User ${username} left room ${room}`);
-  // });
-
-
-  //Update connected users in the room and indicate that the server is ready to receive messages
-  // setInterval(() => {
-    // const roomsPresent = UpdateRoomsPresent();
-    // for (const room of Object.keys(roomsKeysMap)) {
-    //   io.to(room).emit('serverIsOk', true);
-    // }
-// }, 5000); 
-
-
-
-// const UpdateRoomsPresent = () => {
-  // let savedRooms = Object.keys(roomsKeys); // Get the keys of the rooms that are present in roomsKeys
-  // let connectedNetworkRooms = [...io.sockets.adapter.rooms.entries()].map(([k]) => k); // Get the keys of all connected rooms
-  // let roomNotConnected = savedRooms.filter(roomKey => !connectedNetworkRooms.includes(roomKey)); // Filter the rooms that are not connected
-
-  // for(let roomId of Object.keys(roomsKeys)){
-  //   if (roomNotConnected.includes(roomId)) {
-  //     delete roomsKeys[roomId];
-  //   }      
-  // }
-// }
-
   socket.on('join', ({ username, room }) => {
-    console.log(`User ${username} joined room ${room}`);
+    socket.data.username = username;
+    socket.data.room = room;
     socket.join(room);
+    socket.emit('joinSuccess', { username, room });
     io.to(room).emit('newListKey', { usersKeys: roomsKeysMap.get(room)});
   })
 
@@ -145,7 +102,30 @@ io.on('connection', (socket) => {
     socket.join(room);
     io.to(room).emit('newMessage', { username, encryptedMessagesRoom });
   });
+
+  //disconnect event
+  socket.on('disconnect', () => {
+    const username = socket.data.username;
+    const room = socket.data.room;
+    if (username && room) {
+    disconnectFunction(username, room);
+    }
+  });
+
 });
+
+
+const disconnectFunction= (username:string, room:string) => {
+    const userKeys = roomsKeysMap.get(room);
+    if (userKeys) {
+      const index = userKeys.findIndex((user) => user.username === username);
+      if (index !== -1) {
+        userKeys.splice(index, 1);
+        console.log(`User ${username} disconnected from room ${room} (socket disconnect)`);
+        io.to(room).emit('newListKey', { usersKeys: userKeys });
+      }
+    }
+}
 
 
 // start the server

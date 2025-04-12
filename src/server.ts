@@ -95,8 +95,11 @@ app.post('/opencloseroom', (req, res) => {
       if (index !== -1) {
         const roomStatusIndex = roomsStatusList.findIndex((r) => r.room === room);
         if (roomStatusIndex !== -1) {
-          roomsStatusList[roomStatusIndex].status = !roomsStatusList[roomStatusIndex].status;
-          res.status(200).send({status : roomsStatusList[roomStatusIndex].status});
+
+          let newStatus = !roomsStatusList[roomStatusIndex].status;
+          roomsStatusList[roomStatusIndex].status = newStatus;
+          res.status(200).send({status : newStatus});
+          io.to(room).emit('changeRoomStatus', { status: newStatus});
         } else {
           res.status(400).send("Room not found");
         }

@@ -2,6 +2,8 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 
+import { MessageUser, UserKey } from './data/UtilsFunction';
+
 const app = express();
 const server = http.createServer(app);
 
@@ -13,15 +15,6 @@ const io = new Server(server, {
   }
 });
 
-interface MessageUser {
-  username: string;
-  encryptedMessage: string;
-}
-
-interface UserKey{
-  username: string;
-  publicKey: string;
-}
 
 const roomsMessage: { [key: string]: MessageUser[] } = {};
 const roomsKeys: { [key: string]: UserKey[] } = {};

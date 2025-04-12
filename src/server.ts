@@ -73,6 +73,26 @@ app.post('/login', (req, res) => {
 
 })
 
+
+app.post('/opencloseroom', (req, res) => {
+
+  const { username, room, status} = req.body;
+
+  if(username && room && status){
+    const userKeys = roomsKeysMap.get(room);
+    if (userKeys) {
+      res.status(200).send(status ? "Room closed" : "Room opened");
+    } else {
+      res.status(400).send("Room not found");
+    }
+  } else {
+    res.status(500).send('Error occurred while opening the room');
+  }
+  
+})
+
+
+
 //Disconnect with button 
 app.post('/disconnect', (req, res) => {
   

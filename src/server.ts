@@ -24,17 +24,6 @@ app.use(cors({
 
 app.use(express.json());
 
-interface MessageUser {
-  username: string;
-  encryptedMessage: string;
-}
-
-interface UserKey{
-  username: string;
-  publicKey: string;
-}
-
-
 let  roomsMessagesMap = new Map<string, Array<MessageUser>>(); 
 let  roomsKeysMap = new Map<string, Array<UserKey>>();
 

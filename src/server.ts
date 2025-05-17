@@ -2,7 +2,7 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 
-import { MessageUser, UserKey, RoomStatut } from './data/UtilsFunction';
+import { MessageUser, UserKey, RoomStatut, votedValues } from './data/UtilsFunction';
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +27,7 @@ app.use(express.json());
 let  roomsMessagesMap = new Map<string, Array<MessageUser>>(); 
 let  roomsKeysMap = new Map<string, Array<UserKey>>();
 let  roomsStatusList = Array<RoomStatut>();
+let  roomsVotedValues = new Map<string, Array<votedValues>>(); // Map to store the voted values for each room
 
 // Test de la route GET '/'
 app.get('/', (req, res) => {

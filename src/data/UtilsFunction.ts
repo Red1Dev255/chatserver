@@ -13,3 +13,8 @@ export interface RoomStatut{
   room: string;
   status: boolean;
 }
+
+export interface votedValues{
+  username: string;
+  vote: boolean;
+}
